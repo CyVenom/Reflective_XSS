@@ -59,6 +59,7 @@ Option	Description
 
 ## 🎯 Example Output
 
+```bash
 [+] Loaded 10000 payloads.
 [+] Starting XSS scan on: https://example.com/page.php?id=123
 [+] Testing parameter: id
@@ -70,12 +71,12 @@ Option	Description
 [!] Vulnerable parameter detected: id
     Payload URL: https://example.com/page.php?id="><svg/onload=alert(MNO987)>
     Payload used: "><svg/onload=alert(MNO987)>
-
+```
 
 ## 📚 Project Structure
 
-Reflective_XSS/
-├── generate_payloads.py           # Generate 10,000+ payloads
+Reflective_XSS_Scanner/
+├── generate_payloads.py           # Payload generator
 ├── reflective_xss_payloads.txt     # Payloads file (TXT)
 ├── reflective_xss_payloads.json    # Payloads file (JSON)
 ├── reflective_xss_scanner.py       # Main scanner
