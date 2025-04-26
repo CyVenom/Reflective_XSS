@@ -31,9 +31,9 @@ pip install requests beautifulsoup4
 ```bash
  python3 generate_payloads.py
 
- This will create:
-reflective_xss_payloads.txt
-reflective_xss_payloads.json
+This will create:
+#reflective_xss_payloads.txt
+#reflective_xss_payloads.json
 
 ✅ Now you have 10,000+ payloads ready.
 ```
