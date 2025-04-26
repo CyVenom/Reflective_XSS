@@ -29,9 +29,9 @@ pip install requests beautifulsoup4
 
 ## 📦 Payload Generation
 ```bash
-# python3 generate_payloads.py
+ python3 generate_payloads.py
 
-# This will create:
+ This will create:
 reflective_xss_payloads.txt
 reflective_xss_payloads.json
 
@@ -41,13 +41,13 @@ reflective_xss_payloads.json
 ## 🚀 Usage
 
 ```bash
-# 1. Basic XSS Scan (URL parameters only)
+ 1. Basic XSS Scan (URL parameters only)
 python3 reflective_xss_scanner.py -u "https://example.com/page.php?id=123"
 
-# 2. Full Scan (parameters + forms)
+ 2. Full Scan (parameters + forms)
 python3 reflective_xss_scanner.py -u "https://example.com/page.php?id=123" -f
 
-# 3. Custom Payload File and Thread Count
+ 3. Custom Payload File and Thread Count
 python3 reflective_xss_scanner.py -u "https://example.com/page.php?id=123" -p "reflective_xss_payloads.txt" -t 20
 ```
 
