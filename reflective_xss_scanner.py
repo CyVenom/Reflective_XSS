@@ -25,7 +25,7 @@ def inject_and_check(url, param, payload_template):
     new_query = urllib.parse.urlencode(query)
     new_url = parsed_url._replace(query=new_query).geturl()
 
-    print(f"    [Testing Payload] {payload}")   # <-- ADD THIS LINE
+    print(f"\033[96m[Testing Payload]\033[0m {payload}")    # <-- ADD THIS LINE
 
     try:
         response = requests.get(new_url, timeout=8, verify=False)
