@@ -29,7 +29,7 @@ pip install requests beautifulsoup4
 
 ## 📦 Payload Generation
 ```bash
- python3 generate_payloads.py
+python3 generate_payloads.py
 
 This will create:
 reflective_xss_payloads.txt
