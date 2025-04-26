@@ -28,23 +28,28 @@ pip install requests beautifulsoup4
 ```
 
 ## 📦 Payload Generation
-python3 generate_payloads.py
+```bash
+# python3 generate_payloads.py
 
-This will create:
+# This will create:
 reflective_xss_payloads.txt
 reflective_xss_payloads.json
 
 ✅ Now you have 10,000+ payloads ready.
+```
 
 ## 🚀 Usage
-1. Basic XSS Scan (URL parameters only)
+
+```bash
+# 1. Basic XSS Scan (URL parameters only)
 python3 reflective_xss_scanner.py -u "https://example.com/page.php?id=123"
 
-2. Full Scan (parameters + forms)
+# 2. Full Scan (parameters + forms)
 python3 reflective_xss_scanner.py -u "https://example.com/page.php?id=123" -f
 
-3. Custom Payload File and Thread Count
+# 3. Custom Payload File and Thread Count
 python3 reflective_xss_scanner.py -u "https://example.com/page.php?id=123" -p "reflective_xss_payloads.txt" -t 20
+```
 
 Option	Description
 -u	Target URL
@@ -79,15 +84,12 @@ Reflective_XSS/
 
 ## ⚡ Future Improvements
 
- Auto URL crawler (spider target domain)
+- [ ] Auto URL crawler (spider target domain)
+- [ ] JSON report export
+- [ ] Smart form filling (better context handling)
+- [ ] DOM-based XSS detection
+- [ ] GUI dashboard mode
 
- JSON report export
-
- Smart form filling (better context handling)
-
- DOM-based XSS detection
-
- GUI dashboard mode
 
 ## ⚠️ Legal Disclaimer
 This tool is made for educational and authorized penetration testing only.
