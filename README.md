@@ -1,7 +1,7 @@
 # Reflective_XSS_Scanner
 
 **Reflective_XSS_Scanner** is a professional-grade Reflective XSS (rXSS) testing tool.  
-It tests parameters and forms against 10,000+ carefully generated payloads with multi-threaded scanning, colorful CLI output, and true positive detection.
+It tests parameters and forms against 10,000+ carefully generated payloads with multi-threaded scanning and true positive detection.
 
 ---
 
