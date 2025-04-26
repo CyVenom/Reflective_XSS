@@ -74,14 +74,14 @@ Option	Description
 ```
 
 ## 📚 Project Structure
-
+```bash
 Reflective_XSS_Scanner/
 ├── generate_payloads.py           # Payload generator
 ├── reflective_xss_payloads.txt     # Payloads file (TXT)
 ├── reflective_xss_payloads.json    # Payloads file (JSON)
 ├── reflective_xss_scanner.py       # Main scanner
 ├── README.md                       # Documentation
-
+```
 
 ## ⚡ Future Improvements
 
