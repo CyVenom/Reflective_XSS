@@ -16,7 +16,7 @@ def load_payloads(filepath):
 def random_marker():
     return ''.join(random.choices(string.ascii_letters, k=8))
 
-def inject_and_check(url, param, payload_template):
+def inject_and_check(url, param, payload_template, verbose=False):
     marker = random_marker()
     payload = payload_template.replace('1', marker).replace('alert', 'alert')  # Keep structure
     parsed_url = urllib.parse.urlparse(url)
@@ -25,13 +25,17 @@ def inject_and_check(url, param, payload_template):
     new_query = urllib.parse.urlencode(query)
     new_url = parsed_url._replace(query=new_query).geturl()
 
-    print(f"\033[96m[Testing Payload]\033[0m {payload}")    # <-- ADD THIS LINE
+    if verbose:
+        print(f"\033[96m[Testing Payload]\033[0m {payload} on {new_url}")
 
     try:
         response = requests.get(new_url, timeout=8, verify=False)
         if marker in response.text:
+            print(f"\033[92m[!] Possible Reflection Detected: {new_url}\033[0m")
             return True, new_url, payload
-    except requests.RequestException:
+    except requests.RequestException as e:
+        if verbose:
+            print(f"\033[91m[Error] {e}\033[0m")
         pass
 
     return False, None, None
@@ -48,7 +52,7 @@ def find_forms(url):
     except requests.RequestException:
         return []
 
-def form_injection(url, forms, payloads):
+def form_injection(url, forms, payloads, verbose=False):
     vulnerable = []
     for form in forms:
         action = form.get('action')
@@ -71,7 +75,10 @@ def form_injection(url, forms, payloads):
 
             if any(payload in resp.text for payload in data.values()):
                 vulnerable.append(form_url)
-        except requests.RequestException:
+                print(f"\033[92m[!] Vulnerable Form Detected: {form_url}\033[0m")
+        except requests.RequestException as e:
+            if verbose:
+                print(f"\033[91m[Error] {e}\033[0m")
             continue
 
     return vulnerable
@@ -82,13 +89,14 @@ def main():
     parser.add_argument("-f", "--full", action='store_true', help="Test forms along with GET parameters")
     parser.add_argument("-p", "--payloads", default="reflective_xss_payloads.txt", help="Payloads file (default: reflective_xss_payloads.txt)")
     parser.add_argument("-t", "--threads", type=int, default=10, help="Number of threads (default: 10)")
+    parser.add_argument("-v", "--verbose", action='store_true', help="Enable verbose output")
     args = parser.parse_args()
 
     payloads = load_payloads(args.payloads)
-
     print(f"[+] Loaded {len(payloads)} payloads.")
     print("[+] Starting XSS scan on:", args.url)
 
+    vulnerable_count = 0
     params = extract_params(args.url)
     if not params:
         print("[-] No query parameters found in URL.")
@@ -100,7 +108,7 @@ def main():
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.threads) as executor:
             futures = []
             for payload in payloads:
-                futures.append(executor.submit(inject_and_check, args.url, param, payload))
+                futures.append(executor.submit(inject_and_check, args.url, param, payload, args.verbose))
 
             for future in concurrent.futures.as_completed(futures):
                 found, attack_url, payload_used = future.result()
@@ -108,18 +116,22 @@ def main():
                     print(f"[!] Vulnerable parameter detected: {param}")
                     print(f"    Payload URL: {attack_url}")
                     print(f"    Payload used: {payload_used}")
+                    vulnerable_count += 1
                     break  # Found one, no need to keep testing same param
 
     if args.full:
         print("\n[+] Scanning forms...")
         forms = find_forms(args.url)
-        vulnerable_forms = form_injection(args.url, forms, payloads)
+        vulnerable_forms = form_injection(args.url, forms, payloads, args.verbose)
 
         if vulnerable_forms:
             for vf in vulnerable_forms:
                 print(f"[!] Vulnerable form action detected: {vf}")
+                vulnerable_count += 1
         else:
             print("[-] No vulnerable forms detected.")
+
+    print(f"\n[+] Scan completed. Found {vulnerable_count} vulnerable item(s).")
 
 if __name__ == "__main__":
     main()
