@@ -26,8 +26,7 @@ def inject_and_check(url, param, payload_template, verbose=False):
     new_url = parsed_url._replace(query=new_query).geturl()
 
     if verbose:
-        print(f"\033[96m[Testing Payload]\033[0m {payload} on {new_url}")
-
+        print(f"\033[94m[Testing Payload] \033[0m\033[91m{payload}\033[0m on \033[91m{new_url}\033[0m")
     try:
         response = requests.get(new_url, timeout=8, verify=False)
         if marker in response.text:
