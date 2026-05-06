@@ -1,0 +1,188 @@
+"""
+Reflected XSS vulnerability module.
+
+This is the primary module shipped with the framework.  It tests URL query
+parameters and HTML form fields for reflected cross-site scripting by injecting
+uniquely-marked payloads and analysing HTTP responses with
+:class:`~core.reflection.ReflectionAnalyzer`.
+
+Optional crawling discovers additional injection points beyond the seed URL.
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import Any, Optional
+
+from bs4 import BeautifulSoup
+
+from core.config import FrameworkConfig
+from core.crawler import Crawler
+from core.scanner import Scanner, ScanResult
+from modules.base import BaseModule, ModuleResult
+from payloads.engine import PayloadEngine
+from utils.helpers import extract_params, normalize_url
+from utils.http import HTTPClient
+
+logger = logging.getLogger(__name__)
+
+
+class ReflectiveXSSModule(BaseModule):
+    """
+    Module for detecting Reflected Cross-Site Scripting (rXSS).
+
+    Supports:
+
+    - URL query parameter scanning
+    - HTML form field scanning (GET and POST)
+    - Optional site crawling to discover additional injection points
+    - Custom or bundled payload sets
+    - WAF-bypass payload variants (opt-in via config)
+
+    The module returns a :class:`~modules.base.ModuleResult` whose ``findings``
+    list follows this schema per entry:
+
+    .. code-block:: python
+
+        {
+            "type":               str,   # "Reflected XSS"
+            "severity":          str,   # "HIGH"
+            "parameter":         str,   # vulnerable param name
+            "payload":           str,   # exact marked payload used
+            "attack_url":        str,   # reproducible PoC URL
+            "evidence":          str,   # response excerpt
+            "reflection_context": str,  # e.g. "SCRIPT_BLOCK"
+        }
+    """
+
+    name = "reflected-xss"
+    description = "Detect reflected XSS in URL query parameters and HTML forms"
+    version = "1.0.0"
+
+    def __init__(self, config: FrameworkConfig) -> None:
+        super().__init__(config)
+        self._payload_engine = PayloadEngine(config.payloads)
+
+    async def run(
+        self,
+        target: str,
+        *,
+        scan_forms: bool = False,
+        crawl: bool = False,
+        custom_payloads: Optional[list[str]] = None,
+        payload_file: Optional[str] = None,
+        **kwargs: Any,
+    ) -> ModuleResult:
+        """
+        Scan *target* for reflected XSS vulnerabilities.
+
+        Args:
+            target: Seed URL.  Include query parameters for direct parameter
+                    testing; omit them when relying on ``crawl=True``.
+            scan_forms: Discover and test HTML forms on the target page(s).
+            crawl: Crawl the target site for additional parameterised URLs
+                   and forms before scanning.
+            custom_payloads: In-memory payload list.  Overrides file-based
+                             loading when provided.
+            payload_file: Path to a user-supplied TXT or JSON payload file.
+                          Ignored when *custom_payloads* is set.
+            **kwargs: Absorbed for forward-compatibility with the BaseModule API.
+
+        Returns:
+            :class:`~modules.base.ModuleResult` with all confirmed findings.
+        """
+        target = normalize_url(target)
+        self._logger.info("Starting %s scan against: %s", self.name, target)
+
+        payloads = custom_payloads or self._payload_engine.load(
+            Path(payload_file) if payload_file else None
+        )
+
+        result = ModuleResult(
+            module_name=self.name,
+            target=target,
+            metadata={"payloads_loaded": len(payloads)},
+        )
+
+        async with HTTPClient(self._config.scanner) as http:
+            scanner = Scanner(self._config, http)
+            scan_results: list[ScanResult] = []
+
+            urls_to_scan: list[str] = []
+            forms_to_scan: list = []
+
+            if crawl:
+                crawler = Crawler(self._config.crawler, http)
+                crawl_data = await crawler.crawl(target)
+                urls_to_scan = crawl_data.urls_with_params or (
+                    [target] if extract_params(target) else []
+                )
+                forms_to_scan = crawl_data.forms if scan_forms else []
+            else:
+                if extract_params(target):
+                    urls_to_scan = [target]
+                elif not scan_forms:
+                    self._logger.warning(
+                        "No query parameters detected in target URL. "
+                        "Use --forms to scan HTML forms or --crawl to discover endpoints."
+                    )
+
+                if scan_forms:
+                    forms_to_scan = await self._discover_forms(target, http)
+
+            # Scan parameterised URLs
+            for url in urls_to_scan:
+                sr = await scanner.scan_url(url, payloads)
+                scan_results.append(sr)
+
+            # Scan forms
+            for form in forms_to_scan:
+                sr = await scanner.scan_form(form, payloads)
+                scan_results.append(sr)
+
+        # Aggregate results across all scan passes
+        total_payloads = 0
+        total_params = 0
+        for sr in scan_results:
+            total_payloads += sr.payloads_tested
+            total_params += sr.parameters_tested
+            result.errors.extend(sr.errors)
+            for finding in sr.findings:
+                result.findings.append({
+                    "type": finding.finding_type,
+                    "severity": finding.severity,
+                    "parameter": finding.parameter,
+                    "payload": finding.payload,
+                    "attack_url": finding.attack_url,
+                    "evidence": finding.evidence,
+                    "reflection_context": finding.reflection_context,
+                })
+
+        result.metadata["payloads_tested"] = total_payloads
+        result.metadata["parameters_tested"] = total_params
+
+        self._logger.info(
+            "Scan complete: %d finding(s) across %d payload(s) tested",
+            len(result.findings),
+            total_payloads,
+        )
+        return result
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    async def _discover_forms(self, url: str, http: HTTPClient) -> list:
+        """Fetch *url* and parse its forms without a full crawl."""
+        response = await http.get(url)
+        if response is None:
+            self._logger.warning("Could not fetch page for form discovery: %s", url)
+            return []
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        # Reuse the crawler's form-extraction logic
+        crawler = Crawler(self._config.crawler, http)
+        forms = crawler._extract_forms(soup, url)
+        self._logger.info("Discovered %d form(s) on: %s", len(forms), url)
+        return forms

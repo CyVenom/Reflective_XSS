@@ -1,0 +1,1 @@
+"""XSS Framework test suite."""

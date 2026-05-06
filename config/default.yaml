@@ -1,0 +1,30 @@
+scanner:
+  concurrency: 10
+  timeout: 10.0
+  max_retries: 3
+  retry_delay: 1.0
+  follow_redirects: true
+  verify_ssl: false
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+crawler:
+  max_depth: 2
+  max_pages: 50
+  follow_external: false
+  timeout: 15.0
+
+payloads:
+  use_mutations: true
+  use_waf_bypass: false
+  max_payloads: null   # null = no limit
+
+reporting:
+  format: "console"   # console | json
+  output_file: null
+  verbose: false
+  color: true
+
+logging:
+  level: "WARNING"
+  file: null
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"

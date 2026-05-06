@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/ -v --tb=short --no-header)",
+      "Bash(python -m cli.main list-modules)",
+      "Bash(python -m cli.main scan --help)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Cybervenom\\.claude\\projects\\c--Users-Cybervenom-Reflective-XSS-main\\memory"
+    ]
+  }
+}

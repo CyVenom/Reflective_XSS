@@ -1,0 +1,1 @@
+"""XSS Framework CLI package."""
