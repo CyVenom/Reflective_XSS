@@ -22,7 +22,7 @@ from typing import Optional
 
 from core.config import FrameworkConfig
 from core.crawler import Form
-from core.reflection import ReflectionAnalyzer, ReflectionContext
+from core.reflection import ConfidenceLevel, ReflectionAnalyzer, ReflectionContext
 from utils.helpers import (
     build_url_with_param,
     extract_params,
@@ -59,8 +59,13 @@ class Finding:
     """A short excerpt of the response body showing the reflected marker."""
 
     severity: str = "HIGH"
+    confidence: ConfidenceLevel = ConfidenceLevel.HIGH
     finding_type: str = "Reflected XSS"
     reflection_context: str = ReflectionContext.UNKNOWN.name
+    exploitation_notes: str = ""
+    encoding_types: tuple[str, ...] = ()
+    dangerous_chars_preserved: tuple[str, ...] = ()
+    exploitation_difficulty: str = "UNKNOWN"
 
 
 @dataclass
@@ -232,17 +237,25 @@ class Scanner:
             result.errors.append(f"No response for: {attack_url}")
             return None
 
-        reflection = self._reflection.analyze(response.text, marker)
+        reflection = self._reflection.analyze(response.text, marker, payload=marked_payload)
         if not reflection:
             return None
 
+        best = reflection.occurrences[0] if reflection.occurrences else None
+        enc  = best.encoding if best else None
         return Finding(
             target_url=url,
             parameter=param,
             payload=marked_payload,
             attack_url=attack_url,
             evidence=reflection.snippet or "",
+            severity=reflection.confidence.name,
+            confidence=reflection.confidence,
             reflection_context=reflection.context.name,
+            exploitation_notes=best.exploitation_notes if best else "",
+            encoding_types=enc.encoding_types if enc else (),
+            dangerous_chars_preserved=enc.dangerous_chars_preserved if enc else (),
+            exploitation_difficulty=enc.exploitation_difficulty if enc else "UNKNOWN",
         )
 
     async def _probe_form_field(
@@ -273,15 +286,23 @@ class Scanner:
             result.errors.append(f"No response for form at: {form.action}")
             return None
 
-        reflection = self._reflection.analyze(response.text, marker)
+        reflection = self._reflection.analyze(response.text, marker, payload=marked_payload)
         if not reflection:
             return None
 
+        best = reflection.occurrences[0] if reflection.occurrences else None
+        enc  = best.encoding if best else None
         return Finding(
             target_url=form.action,
             parameter=field_name,
             payload=marked_payload,
             attack_url=response.url,
             evidence=reflection.snippet or "",
+            severity=reflection.confidence.name,
+            confidence=reflection.confidence,
             reflection_context=reflection.context.name,
+            exploitation_notes=best.exploitation_notes if best else "",
+            encoding_types=enc.encoding_types if enc else (),
+            dangerous_chars_preserved=enc.dangerous_chars_preserved if enc else (),
+            exploitation_difficulty=enc.exploitation_difficulty if enc else "UNKNOWN",
         )

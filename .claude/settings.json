@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/ -v --tb=short --no-header)",
+      "Bash(python -m cli.main list-modules)",
+      "Bash(python -m cli.main scan --help)",
+      "Bash(python -m pytest tests/test_reflection.py -v --tb=short --no-header)",
+      "Bash(python -m pytest tests/test_crawler.py -v --tb=short --no-header)",
+      "Bash(python -m pytest tests/ --tb=short --no-header -q)",
+      "Bash(python -m pytest tests/test_payloads.py -x -q)",
+      "Bash(python -c \"import yaml; yaml.safe_load\\(open\\('payloads/data/basic.yaml', encoding='utf-8'\\).read\\(\\)\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest tests/test_payloads.py -q)",
+      "Bash(python -m pytest -q)",
+      "PowerShell(head -100)",
+      "Bash(pip install *)",
+      "Bash(python -c \"from cli.main import app; print\\('Import OK'\\)\")",
+      "Bash(python -m cli.main --help)",
+      "Bash(python -m cli.main payloads --help)",
+      "Bash(python -m cli.main config --help)",
+      "Bash(python -m cli.main payloads list)",
+      "Bash(python -m cli.main config show)",
+      "Bash(python -m cli.main payloads show svg --severity high)",
+      "Bash(python -m pytest tests/test_scanner.py -v -q)",
+      "Bash(python -m pytest tests/test_reporters.py -v --tb=short)",
+      "Bash(python -m pytest tests/test_integration.py -v --tb=short)",
+      "Bash(python -m pytest tests/ --ignore=tests/benchmarks -v --tb=short -q)",
+      "Bash(python -m pytest tests/benchmarks/ -v --benchmark-disable --tb=short)",
+      "Bash(python -m pytest tests/benchmarks/ -v --tb=short)",
+      "Bash(python -m pytest tests/benchmarks/bench_scanner.py --collect-only --tb=long)",
+      "Bash(python -m pytest tests/ -q --tb=short)",
+      "Bash(python -m pytest tests/test_crawler.py::TestCrawlerJSExtraction::test_js_extraction_disabled -v --tb=short)",
+      "Bash(python -m pytest tests/ -q --collect-only)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Cybervenom\\.claude\\projects\\c--Users-Cybervenom-Reflective-XSS-main\\memory"
+    ]
+  }
+}

@@ -19,11 +19,33 @@ from bs4 import BeautifulSoup
 
 from core.config import FrameworkConfig
 from core.crawler import Crawler
+from core.reflection import ConfidenceLevel
 from core.scanner import Scanner, ScanResult
 from modules.base import BaseModule, ModuleResult
 from payloads.engine import PayloadEngine
 from utils.helpers import extract_params, normalize_url
 from utils.http import HTTPClient
+
+# Context-specific severity multipliers (most dangerous context = 1.0)
+_CONTEXT_SCORE_FACTOR: dict[str, float] = {
+    "SCRIPT_BLOCK":           1.00,
+    "HTML_ATTRIBUTE_EVENT":   1.00,
+    "SCRIPT_STRING":          0.90,
+    "HTML_ATTRIBUTE_URL":     0.85,
+    "HTML_TEXT":              0.80,
+    "HTML_ATTRIBUTE":         0.70,
+    "STYLE_BLOCK":            0.60,
+    "META_TAG":               0.50,
+    "HTML_COMMENT":           0.40,
+    "UNKNOWN":                0.60,
+}
+
+
+def _severity_score(confidence: ConfidenceLevel, context: str) -> float:
+    """Compute a 0-10 severity score from confidence level and reflection context."""
+    base   = confidence.value * 2.5  # 2.5 / 5.0 / 7.5 / 10.0
+    factor = _CONTEXT_SCORE_FACTOR.get(context, 0.60)
+    return round(base * factor, 1)
 
 logger = logging.getLogger(__name__)
 
@@ -150,13 +172,20 @@ class ReflectiveXSSModule(BaseModule):
             result.errors.extend(sr.errors)
             for finding in sr.findings:
                 result.findings.append({
-                    "type": finding.finding_type,
-                    "severity": finding.severity,
-                    "parameter": finding.parameter,
-                    "payload": finding.payload,
-                    "attack_url": finding.attack_url,
-                    "evidence": finding.evidence,
-                    "reflection_context": finding.reflection_context,
+                    "type":                     finding.finding_type,
+                    "severity":                 finding.severity,
+                    "severity_score":           _severity_score(finding.confidence, finding.reflection_context),
+                    "confidence":               finding.confidence.value,
+                    "confidence_label":         finding.confidence.name,
+                    "parameter":                finding.parameter,
+                    "payload":                  finding.payload,
+                    "attack_url":               finding.attack_url,
+                    "evidence":                 finding.evidence,
+                    "reflection_context":       finding.reflection_context,
+                    "exploitation_notes":       finding.exploitation_notes,
+                    "encoding_types":           list(finding.encoding_types),
+                    "dangerous_chars_preserved": list(finding.dangerous_chars_preserved),
+                    "exploitation_difficulty":  finding.exploitation_difficulty,
                 })
 
         result.metadata["payloads_tested"] = total_payloads
