@@ -52,6 +52,9 @@ class ScannerConfig:
     )
     """User-Agent header sent with every request."""
 
+    browser_confirm: bool = False
+    """Use a headless Playwright browser to confirm XSS execution (requires playwright)."""
+
 
 @dataclass
 class CrawlerConfig:

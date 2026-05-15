@@ -141,6 +141,75 @@ class Scanner:
         result.elapsed = time.monotonic() - start
         return result
 
+    async def scan_csti(self, url: str) -> list[Finding]:
+        """
+        Probe every query parameter in *url* for Client-Side Template Injection.
+
+        Injects ``{{7*7}}`` and checks whether the response contains ``49``
+        (math evaluation).  A baseline request with a neutral probe confirms
+        the ``49`` was not already present in the page.
+
+        Returns:
+            List of :class:`Finding` objects with ``finding_type="Template Injection (CSTI)"``.
+        """
+        params = extract_params(url)
+        if not params:
+            return []
+        findings: list[Finding] = []
+        for param in params:
+            finding = await self._probe_csti(url, params, param)
+            if finding:
+                findings.append(finding)
+        return findings
+
+    async def _probe_csti(
+        self,
+        url: str,
+        params: dict[str, str],
+        param: str,
+    ) -> Optional[Finding]:
+        """Inject ``{{7*7}}`` into *param*; return a Finding if ``49`` appears in the response."""
+        probe = "{{7*7}}"
+        attack_url = build_url_with_param(url, params, param, probe)
+
+        async with self._semaphore:
+            response = await self._http.get(attack_url)
+
+        if response is None or "49" not in response.text:
+            return None
+
+        # Baseline check: ensure 49 wasn't already on the page
+        baseline_url = build_url_with_param(url, params, param, "xsstestprobe")
+        async with self._semaphore:
+            baseline = await self._http.get(baseline_url)
+
+        if baseline and "49" in baseline.text:
+            return None  # false positive — 49 pre-existed
+
+        return Finding(
+            target_url=url,
+            parameter=param,
+            payload=probe,
+            attack_url=attack_url,
+            evidence=(
+                f"Response contains '49' when {probe!r} injected into '{param}' — "
+                "template math expression was evaluated by the engine"
+            ),
+            severity="HIGH",
+            confidence=ConfidenceLevel.HIGH,
+            finding_type="Template Injection (CSTI)",
+            reflection_context="HTML_TEXT",
+            exploitation_notes=(
+                f"CSTI confirmed in parameter '{param}'. "
+                "{{7*7}} evaluated to 49. "
+                "Try {{constructor.constructor('alert(document.domain)')()}} "
+                "for full JavaScript execution (Angular/Vue/AngularJS targets)."
+            ),
+            encoding_types=(),
+            dangerous_chars_preserved=(),
+            exploitation_difficulty="EASY",
+        )
+
     async def scan_form(self, form: Form, payloads: list[str]) -> ScanResult:
         """
         Test all injectable fields in *form* against every payload in *payloads*.

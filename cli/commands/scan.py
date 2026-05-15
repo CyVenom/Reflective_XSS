@@ -32,6 +32,7 @@ def scan(
     timeout: float = typer.Option(10.0, "--timeout", help="Per-request timeout in seconds.", show_default=True),
     retries: int = typer.Option(3, "--retries", help="Max retries per request.", show_default=True),
     verify_ssl: bool = typer.Option(False, "--verify-ssl", help="Enable TLS certificate verification."),
+    browser_confirm: bool = typer.Option(False, "--browser-confirm", "-b", help="Confirm XSS execution in headless Chromium (requires playwright)."),
     config_file: Optional[Path] = typer.Option(None, "--config", help="YAML configuration file."),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Save report to this file."),
     output_format: str = typer.Option("json", "--format", help="Report format: json | html | csv", show_default=True),
@@ -63,6 +64,7 @@ def scan(
     cfg.scanner.timeout              = timeout
     cfg.scanner.max_retries          = retries
     cfg.scanner.verify_ssl           = verify_ssl
+    cfg.scanner.browser_confirm      = browser_confirm
     cfg.crawler.max_depth            = depth
     cfg.crawler.max_pages            = max_pages
     cfg.payloads.use_waf_bypass      = waf_bypass
@@ -79,6 +81,7 @@ def scan(
     flag_waf  = "[green]on[/green]" if waf_bypass else "[dim]off[/dim]"
     flag_mut  = "[green]on[/green]" if encoding_mutations else "[dim]off[/dim]"
     flag_ssl  = "[green]verify[/green]" if verify_ssl else "[dim]skip[/dim]"
+    flag_br   = "[green]on[/green]" if browser_confirm else "[dim]off[/dim]"
 
     info_body = (
         f"[bold]Target       :[/bold] [cyan]{url}[/cyan]\n"
@@ -88,7 +91,8 @@ def scan(
         f"[bold]Retries:[/bold] {retries}  "
         f"[bold]SSL:[/bold] {flag_ssl}\n"
         f"[bold]WAF bypass   :[/bold] {flag_waf}  "
-        f"[bold]Mutations:[/bold] {flag_mut}"
+        f"[bold]Mutations:[/bold] {flag_mut}  "
+        f"[bold]Browser:[/bold] {flag_br}"
         + (f"\n[bold]Payload file :[/bold] [dim]{payload_file}[/dim]" if payload_file else "")
         + (f"\n[bold]Config file  :[/bold] [dim]{config_file}[/dim]" if config_file else "")
     )
@@ -102,14 +106,15 @@ def scan(
     # Run the scan
     module  = ReflectiveXSSModule(cfg)
     session = ScanSession.start(scan_options={
-        "target":       url,
-        "forms":        forms,
-        "crawl":        do_crawl,
-        "waf_bypass":   waf_bypass,
-        "mutations":    encoding_mutations,
-        "concurrency":  concurrency,
-        "timeout":      timeout,
-        "verify_ssl":   verify_ssl,
+        "target":           url,
+        "forms":            forms,
+        "crawl":            do_crawl,
+        "waf_bypass":       waf_bypass,
+        "mutations":        encoding_mutations,
+        "concurrency":      concurrency,
+        "timeout":          timeout,
+        "verify_ssl":       verify_ssl,
+        "browser_confirm":  browser_confirm,
     })
     try:
         with CONSOLE.status("[bold yellow]  Scanning for reflected XSS…", spinner="dots"):
@@ -120,6 +125,7 @@ def scan(
                     scan_forms=forms,
                     crawl=do_crawl,
                     payload_file=str(payload_file) if payload_file else None,
+                    browser_confirm=browser_confirm,
                 )
             )
             elapsed = time.perf_counter() - start

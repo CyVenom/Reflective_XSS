@@ -26,6 +26,12 @@ from payloads.engine import PayloadEngine
 from utils.helpers import extract_params, normalize_url
 from utils.http import HTTPClient
 
+try:
+    from core.browser import BrowserConfirmer
+    _BROWSER_AVAILABLE = True
+except ImportError:
+    _BROWSER_AVAILABLE = False
+
 # Context-specific severity multipliers (most dangerous context = 1.0)
 _CONTEXT_SCORE_FACTOR: dict[str, float] = {
     "SCRIPT_BLOCK":           1.00,
@@ -94,6 +100,7 @@ class ReflectiveXSSModule(BaseModule):
         crawl: bool = False,
         custom_payloads: Optional[list[str]] = None,
         payload_file: Optional[str] = None,
+        browser_confirm: bool = False,
         **kwargs: Any,
     ) -> ModuleResult:
         """
@@ -163,15 +170,49 @@ class ReflectiveXSSModule(BaseModule):
                 sr = await scanner.scan_form(form, payloads)
                 scan_results.append(sr)
 
-        # Aggregate results across all scan passes
+        # ── Phase 2: context-aware upgrade for LOW SCRIPT_STRING findings ──────
+        # For each parameter that got a LOW-confidence SCRIPT_STRING hit,
+        # run a targeted second pass with JS string-break payloads to try to
+        # escalate confidence before we deduplicate.
+        js_payloads = self._payload_engine.load_for_context("script_block")
+        if js_payloads:
+            upgrade_tasks = []
+            for sr in scan_results:
+                for finding in sr.findings:
+                    if (
+                        finding.confidence == ConfidenceLevel.LOW
+                        and finding.reflection_context == "SCRIPT_STRING"
+                    ):
+                        upgrade_tasks.append((sr, finding))
+
+            for sr, low_finding in upgrade_tasks:
+                async with HTTPClient(self._config.scanner) as http2:
+                    scanner2 = Scanner(self._config, http2)
+                    upgraded_sr = await scanner2.scan_url(low_finding.target_url, js_payloads)
+                    sr.payloads_tested += upgraded_sr.payloads_tested
+                    for upgraded in upgraded_sr.findings:
+                        if upgraded.parameter == low_finding.parameter:
+                            if upgraded.confidence > low_finding.confidence:
+                                sr.findings.remove(low_finding)
+                                sr.findings.append(upgraded)
+                                self._logger.info(
+                                    "Upgraded %r finding %s→%s via JS string-break payloads",
+                                    upgraded.parameter,
+                                    low_finding.confidence.name,
+                                    upgraded.confidence.name,
+                                )
+                            break
+
+        # ── Aggregate all findings ───────────────────────────────────────────
         total_payloads = 0
         total_params = 0
+        raw_findings: list[dict] = []
         for sr in scan_results:
             total_payloads += sr.payloads_tested
             total_params += sr.parameters_tested
             result.errors.extend(sr.errors)
             for finding in sr.findings:
-                result.findings.append({
+                raw_findings.append({
                     "type":                     finding.finding_type,
                     "severity":                 finding.severity,
                     "severity_score":           _severity_score(finding.confidence, finding.reflection_context),
@@ -187,6 +228,62 @@ class ReflectiveXSSModule(BaseModule):
                     "dangerous_chars_preserved": list(finding.dangerous_chars_preserved),
                     "exploitation_difficulty":  finding.exploitation_difficulty,
                 })
+
+        # ── Phase 3: CSTI probing ────────────────────────────────────────────
+        async with HTTPClient(self._config.scanner) as http_csti:
+            csti_scanner = Scanner(self._config, http_csti)
+            csti_urls = list(dict.fromkeys(urls_to_scan))  # deduplicated
+            for csti_url in csti_urls:
+                csti_findings = await csti_scanner.scan_csti(csti_url)
+                total_payloads += len(extract_params(csti_url))
+                for f in csti_findings:
+                    raw_findings.append({
+                        "type":                     f.finding_type,
+                        "severity":                 f.severity,
+                        "severity_score":           _severity_score(f.confidence, f.reflection_context),
+                        "confidence":               f.confidence.value,
+                        "confidence_label":         f.confidence.name,
+                        "parameter":                f.parameter,
+                        "payload":                  f.payload,
+                        "attack_url":               f.attack_url,
+                        "evidence":                 f.evidence,
+                        "reflection_context":       f.reflection_context,
+                        "exploitation_notes":       f.exploitation_notes,
+                        "encoding_types":           list(f.encoding_types),
+                        "dangerous_chars_preserved": list(f.dangerous_chars_preserved),
+                        "exploitation_difficulty":  f.exploitation_difficulty,
+                    })
+
+        # ── Phase 4: Browser confirmation (optional) ─────────────────────────
+        if browser_confirm and _BROWSER_AVAILABLE:
+            confirmer = BrowserConfirmer()
+            if await confirmer.is_available():
+                confirmed: list[dict] = []
+                for f in raw_findings:
+                    if f["type"] == "Template Injection (CSTI)":
+                        confirmed.append(f)
+                        continue
+                    browser_hit = await confirmer.confirm_xss(f["attack_url"])
+                    if browser_hit:
+                        f = dict(f)
+                        f["confidence"] = ConfidenceLevel.CRITICAL.value
+                        f["confidence_label"] = "CRITICAL"
+                        f["severity"] = "CRITICAL"
+                        f["severity_score"] = 10.0
+                        f["exploitation_notes"] = (
+                            "[BROWSER CONFIRMED] alert() executed in headless browser. "
+                            + f.get("exploitation_notes", "")
+                        )
+                        confirmed.append(f)
+                    else:
+                        confirmed.append(f)
+                raw_findings = confirmed
+
+        # ── Phase 5: Deduplicate ─────────────────────────────────────────────
+        # Keep the highest-scoring finding per (parameter, finding_type) pair.
+        # This collapses duplicate LOW findings for the same parameter across
+        # multiple crawled pages into a single representative finding.
+        result.findings = self._deduplicate_findings(raw_findings)
 
         result.metadata["payloads_tested"] = total_payloads
         result.metadata["parameters_tested"] = total_params
@@ -215,3 +312,19 @@ class ReflectiveXSSModule(BaseModule):
         forms = crawler._extract_forms(soup, url)
         self._logger.info("Discovered %d form(s) on: %s", len(forms), url)
         return forms
+
+    @staticmethod
+    def _deduplicate_findings(findings: list[dict]) -> list[dict]:
+        """
+        Return one finding per (parameter, finding_type) pair — the highest-scoring one.
+
+        Prevents report clutter when the same vulnerable parameter is discovered
+        across multiple crawled URLs with the same injection type.
+        """
+        best: dict[tuple[str, str], dict] = {}
+        for f in findings:
+            key = (f.get("parameter", ""), f.get("type", ""))
+            existing = best.get(key)
+            if existing is None or f.get("severity_score", 0) > existing.get("severity_score", 0):
+                best[key] = f
+        return list(best.values())

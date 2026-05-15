@@ -643,7 +643,10 @@ class Crawler:
         """Parse all ``<form>`` elements into :class:`Form` objects."""
         forms: list[Form] = []
         for form_tag in soup.find_all("form"):
-            action = urljoin(page_url, form_tag.get("action") or page_url)
+            raw_action = form_tag.get("action") or ""
+            if raw_action.lower().startswith("javascript:"):
+                continue
+            action = urljoin(page_url, raw_action or page_url)
             method = (form_tag.get("method") or "GET").strip().upper()
             fields: list[FormField] = []
             for inp in form_tag.find_all(["input", "textarea", "select"]):

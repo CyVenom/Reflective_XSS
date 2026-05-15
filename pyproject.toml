@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "xss-framework"
@@ -34,6 +34,9 @@ test = [
     "pytest-asyncio>=0.23",
     "pytest-benchmark>=4.0",
     "aioresponses>=0.7",
+]
+browser = [
+    "playwright>=1.40",
 ]
 
 [project.scripts]
