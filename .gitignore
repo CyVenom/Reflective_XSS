@@ -1,1 +1,18 @@
 .claude/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Scan reports
+*.html
+*.csv
+
+# Compiled entry-point binary
+xsf
